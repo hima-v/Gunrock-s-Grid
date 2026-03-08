@@ -7,7 +7,7 @@
 MU_LAT = 38.5424
 MU_LON = -121.7483
 
-# radius in miles for transit score 
+# radius in miles for transit score
 # basically how far from the apartment we look for bus stops
 TRANSIT_RADIUS_MILES = 0.25
 
@@ -15,19 +15,47 @@ TRANSIT_RADIUS_MILES = 0.25
 DB_NAME = "davis_housing.db"
 
 # how many seconds to wait between requests so we dont get blocked
-# apartments.com will ban you if you hit them too fast lol
+# craigslist is chill but we still dont want to hammer them
 SCRAPE_DELAY_MIN = 1.5
 SCRAPE_DELAY_MAX = 3.0
 
-# neighborhoood boundaries (rough lat/lon cutoffs)
-# i drew these out on google maps, they arent perfect but close enough
-# downtown is basically the grid around 3rd/B street area
+# neighborhoood boundaries
+# v2 - expanded ranges and removed gaps between neighborhoods
+# drew these on google maps, checked against known apartment complexes
+# i-80 runs east-west at about 38.555, covell blvd at ~38.560
+# russell blvd goes east-west thru campus at about 38.545
+# downtown is the compact grid between 1st-5th st and A-L st
 NEIGHBORHOOD_BOUNDS = {
-    "Downtown": {"lat_min": 38.540, "lat_max": 38.550, "lon_min": -121.755, "lon_max": -121.738},
-    "North Davis": {"lat_min": 38.555, "lat_max": 38.575, "lon_min": -121.770, "lon_max": -121.730},
-    "South Davis": {"lat_min": 38.525, "lat_max": 38.540, "lon_min": -121.770, "lon_max": -121.730},
-    "East Davis": {"lat_min": 38.540, "lat_max": 38.560, "lon_min": -121.730, "lon_max": -121.710},
-    "West Davis": {"lat_min": 38.540, "lat_max": 38.565, "lon_min": -121.790, "lon_max": -121.755},
+    "Downtown": {
+        "lat_min": 38.540,
+        "lat_max": 38.552,
+        "lon_min": -121.755,
+        "lon_max": -121.730,
+    },
+    "North Davis": {
+        "lat_min": 38.552,
+        "lat_max": 38.580,
+        "lon_min": -121.775,
+        "lon_max": -121.720,
+    },
+    "South Davis": {
+        "lat_min": 38.520,
+        "lat_max": 38.540,
+        "lon_min": -121.775,
+        "lon_max": -121.720,
+    },
+    "East Davis": {
+        "lat_min": 38.535,
+        "lat_max": 38.565,
+        "lon_min": -121.720,
+        "lon_max": -121.690,
+    },
+    "West Davis": {
+        "lat_min": 38.535,
+        "lat_max": 38.565,
+        "lon_min": -121.800,
+        "lon_max": -121.755,
+    },
 }
 
 # craigslist base url for davis apartments (under sacramento region)
