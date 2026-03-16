@@ -4,46 +4,65 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-# =========================================================
-# PAGE CONFIG
-# =========================================================
+# page config
 st.set_page_config(
     page_title="Gunrocks-Grid-Aggie Housing Analysis",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
 st.title("Gunrocks-Grid-Aggie Housing Analysis")
-st.caption("Find the best UC Davis housing based on rent, campus proximity, and amenities.")
+st.caption(
+    "Find the best UC Davis housing based on rent, campus proximity, and amenities."
+)
 
-# =========================================================
-# DATA LOADING
-# =========================================================
+# data loading
 DATA_PATH = "./enriched_listings.csv"
+
 
 @st.cache_data
 def load_data(path):
     return pd.read_csv(path)
 
+
 df = load_data(DATA_PATH)
 
-# =========================================================
-# BASIC CLEANING
-# =========================================================
 df = df.dropna(
-    subset=["listing_id", "lat", "lon", "complex_name", "price_total", "bedrooms", "price_per_bed"]
+    subset=[
+        "listing_id",
+        "lat",
+        "lon",
+        "complex_name",
+        "price_total",
+        "bedrooms",
+        "price_per_bed",
+    ]
 ).copy()
 
 numeric_cols = [
-    "price_total", "bedrooms", "baths", "sqft", "lat", "lon",
-    "price_per_bed", "price_per_sqft",
-    "dist_to_memorial_union_mu", "dist_to_silo", "dist_to_shields_library",
-    "dist_to_arc_activities_and_recreation_center", "dist_to_student_health_center",
-    "dist_to_trader_joes", "dist_to_safeway_north",
-    "dist_to_nugget_markets_east_covell", "dist_to_davis_food_co-op",
-    "dist_to_target", "dist_to_downtown_davis_3rd_and_g_st",
-    "dist_to_davis_farmers_market", "dist_to_davis_amtrak_station",
-    "nearest_grocery_dist", "nearest_campus_dist"
+    "price_total",
+    "bedrooms",
+    "baths",
+    "sqft",
+    "lat",
+    "lon",
+    "price_per_bed",
+    "price_per_sqft",
+    "dist_to_memorial_union_mu",
+    "dist_to_silo",
+    "dist_to_shields_library",
+    "dist_to_arc_activities_and_recreation_center",
+    "dist_to_student_health_center",
+    "dist_to_trader_joes",
+    "dist_to_safeway_north",
+    "dist_to_nugget_markets_east_covell",
+    "dist_to_davis_food_co-op",
+    "dist_to_target",
+    "dist_to_downtown_davis_3rd_and_g_st",
+    "dist_to_davis_farmers_market",
+    "dist_to_davis_amtrak_station",
+    "nearest_grocery_dist",
+    "nearest_campus_dist",
 ]
 
 for col in numeric_cols:
@@ -56,9 +75,7 @@ for col in ["pets_allowed", "has_parking"]:
     if col in df.columns:
         df[col] = df[col].astype(str).str.strip().str.lower()
 
-# =========================================================
-# POI DEFINITIONS
-# =========================================================
+# places of interest for distance filters and map display
 PLACES_OF_INTEREST = [
     {
         "name": "Memorial Union (MU)",
@@ -66,7 +83,7 @@ PLACES_OF_INTEREST = [
         "lon": -121.7496,
         "category": "campus",
         "description": "main student union building, center of campus life",
-        "dist_col": "dist_to_memorial_union_mu"
+        "dist_col": "dist_to_memorial_union_mu",
     },
     {
         "name": "Silo",
@@ -74,7 +91,7 @@ PLACES_OF_INTEREST = [
         "lon": -121.7527,
         "category": "campus",
         "description": "food court area between classes, south side of campus",
-        "dist_col": "dist_to_silo"
+        "dist_col": "dist_to_silo",
     },
     {
         "name": "Shields Library",
@@ -82,7 +99,7 @@ PLACES_OF_INTEREST = [
         "lon": -121.7495,
         "category": "campus",
         "description": "main library - where everyone studies",
-        "dist_col": "dist_to_shields_library"
+        "dist_col": "dist_to_shields_library",
     },
     {
         "name": "ARC (Activities & Recreation Center)",
@@ -90,7 +107,7 @@ PLACES_OF_INTEREST = [
         "lon": -121.7591,
         "category": "campus",
         "description": "gym / rec center on west side of campus",
-        "dist_col": "dist_to_arc_activities_and_recreation_center"
+        "dist_col": "dist_to_arc_activities_and_recreation_center",
     },
     {
         "name": "Student Health Center",
@@ -98,7 +115,7 @@ PLACES_OF_INTEREST = [
         "lon": -121.7615,
         "category": "campus",
         "description": "health and counseling services",
-        "dist_col": "dist_to_student_health_center"
+        "dist_col": "dist_to_student_health_center",
     },
     {
         "name": "Trader Joes",
@@ -106,7 +123,7 @@ PLACES_OF_INTEREST = [
         "lon": -121.7615,
         "category": "grocery",
         "description": "885 Russell Blvd - closest TJs to campus",
-        "dist_col": "dist_to_trader_joes"
+        "dist_col": "dist_to_trader_joes",
     },
     {
         "name": "Safeway (North)",
@@ -114,7 +131,7 @@ PLACES_OF_INTEREST = [
         "lon": -121.7663,
         "category": "grocery",
         "description": "1451 W Covell Blvd - north davis safeway",
-        "dist_col": "dist_to_safeway_north"
+        "dist_col": "dist_to_safeway_north",
     },
     {
         "name": "Nugget Markets (East Covell)",
@@ -122,7 +139,7 @@ PLACES_OF_INTEREST = [
         "lon": -121.7331,
         "category": "grocery",
         "description": "1414 E Covell Blvd - nicer grocery store, bit pricey",
-        "dist_col": "dist_to_nugget_markets_east_covell"
+        "dist_col": "dist_to_nugget_markets_east_covell",
     },
     {
         "name": "Davis Food Co-op",
@@ -130,7 +147,7 @@ PLACES_OF_INTEREST = [
         "lon": -121.7399,
         "category": "grocery",
         "description": "620 G St - organic/local grocery downtown",
-        "dist_col": "dist_to_davis_food_co-op"
+        "dist_col": "dist_to_davis_food_co-op",
     },
     {
         "name": "Target",
@@ -138,7 +155,7 @@ PLACES_OF_INTEREST = [
         "lon": -121.6997,
         "category": "grocery",
         "description": "4601 2nd St - east davis, only target in town",
-        "dist_col": "dist_to_target"
+        "dist_col": "dist_to_target",
     },
     {
         "name": "Downtown Davis (3rd & G St)",
@@ -146,7 +163,7 @@ PLACES_OF_INTEREST = [
         "lon": -121.7389,
         "category": "social",
         "description": "heart of downtown - restaurants, bars, woodstocks pizza",
-        "dist_col": "dist_to_downtown_davis_3rd_and_g_st"
+        "dist_col": "dist_to_downtown_davis_3rd_and_g_st",
     },
     {
         "name": "Davis Farmers Market",
@@ -154,7 +171,7 @@ PLACES_OF_INTEREST = [
         "lon": -121.7440,
         "category": "grocery",
         "description": "central park - sat mornings and wed afternoons",
-        "dist_col": "dist_to_davis_farmers_market"
+        "dist_col": "dist_to_davis_farmers_market",
     },
     {
         "name": "Davis Amtrak Station",
@@ -162,22 +179,19 @@ PLACES_OF_INTEREST = [
         "lon": -121.7377,
         "category": "transit",
         "description": "train station downtown - capitol corridor to sac/bay",
-        "dist_col": "dist_to_davis_amtrak_station"
+        "dist_col": "dist_to_davis_amtrak_station",
     },
 ]
 
 places_df = pd.DataFrame(PLACES_OF_INTEREST)
 places_df = places_df[places_df["dist_col"].isin(df.columns)].copy()
 
-# =========================================================
-# SESSION STATE
-# =========================================================
+# maintaining a session state to store user selected
+# values liek the filters
 if "selected_listing_ids" not in st.session_state:
     st.session_state.selected_listing_ids = []
 
-# =========================================================
-# HELPERS
-# =========================================================
+
 def minmax_score(series, higher_is_better=False):
     s = pd.to_numeric(series, errors="coerce")
     if s.notna().sum() == 0:
@@ -192,10 +206,12 @@ def minmax_score(series, higher_is_better=False):
     norm = (s - s_min) / (s_max - s_min)
     return norm * 100 if higher_is_better else (1 - norm) * 100
 
+
 def parse_amenities_cell(x):
     if pd.isna(x):
         return []
     return [a.strip().lower() for a in str(x).split(",") if a.strip()]
+
 
 def normalize_weights(weight_dict):
     total = sum(weight_dict.values())
@@ -204,9 +220,8 @@ def normalize_weights(weight_dict):
         return {k: 1 / n for k in weight_dict}
     return {k: v / total for k, v in weight_dict.items()}
 
-# =========================================================
-# SIDEBAR FILTERS
-# =========================================================
+
+# sidebar and filtering section of the home page
 st.sidebar.header("Basic Filters")
 
 price_min = int(df["price_per_bed"].min())
@@ -215,57 +230,45 @@ price_range = st.sidebar.slider(
     "Price per bed ($)",
     min_value=price_min,
     max_value=price_max,
-    value=(price_min, price_max)
+    value=(price_min, price_max),
 )
 
 bedroom_values = sorted(df["bedrooms"].dropna().astype(int).unique().tolist())
-selected_bedrooms = st.sidebar.multiselect(
-    "Bedrooms",
-    options=bedroom_values
-)
+selected_bedrooms = st.sidebar.multiselect("Bedrooms", options=bedroom_values)
 
 if "neighborhood" in df.columns:
     neighborhoods = sorted(df["neighborhood"].dropna().astype(str).unique().tolist())
     selected_neighborhoods = st.sidebar.multiselect(
-        "Neighborhood",
-        options=neighborhoods
+        "Neighborhood", options=neighborhoods
     )
 else:
     selected_neighborhoods = []
 
 if "pets_allowed" in df.columns:
     pets_filter = st.sidebar.selectbox(
-        "Pets allowed",
-        options=["Any", "Yes only", "No only"]
+        "Pets allowed", options=["Any", "Yes only", "No only"]
     )
 else:
     pets_filter = "Any"
 
 if "has_parking" in df.columns:
     parking_filter = st.sidebar.selectbox(
-        "Parking",
-        options=["Any", "Yes only", "No only"]
+        "Parking", options=["Any", "Yes only", "No only"]
     )
 else:
     parking_filter = "Any"
 
 if "laundry_type" in df.columns:
     laundry_options = sorted(df["laundry_type"].dropna().astype(str).unique().tolist())
-    selected_laundry = st.sidebar.multiselect(
-        "Laundry type",
-        options=laundry_options
-    )
+    selected_laundry = st.sidebar.multiselect("Laundry type", options=laundry_options)
 else:
     selected_laundry = []
 
-# =========================================================
-# DISTANCE FILTERS
-# =========================================================
+# tering logic for distance
 st.sidebar.header("Location Filters")
 
 location_preferences = st.sidebar.multiselect(
-    "Only show housing near these places",
-    options=places_df["name"].tolist()
+    "Only show housing near these places", options=places_df["name"].tolist()
 )
 
 default_max_dists = {}
@@ -276,18 +279,18 @@ for place_name in location_preferences:
         max_value=8.0,
         value=2.0,
         step=0.1,
-        key=f"dist_{place_name}"
+        key=f"dist_{place_name}",
     )
 
-# =========================================================
-# AMENITY PREFERENCE + SCORING
-# =========================================================
+# scor calculations based on amenities and oreferences
 st.sidebar.header("Scoring Preferences")
 
 rent_weight = st.sidebar.slider("Weight: Rent affordability", 0.0, 1.0, 0.45, 0.05)
 campus_weight = st.sidebar.slider("Weight: Campus proximity", 0.0, 1.0, 0.30, 0.05)
 grocery_weight = st.sidebar.slider("Weight: Grocery access", 0.0, 1.0, 0.15, 0.05)
-social_weight = st.sidebar.slider("Weight: Social / downtown access", 0.0, 1.0, 0.10, 0.05)
+social_weight = st.sidebar.slider(
+    "Weight: Social / downtown access", 0.0, 1.0, 0.10, 0.05
+)
 
 st.session_state["rent_weight"] = rent_weight
 st.session_state["campus_weight"] = campus_weight
@@ -295,37 +298,42 @@ st.session_state["grocery_weight"] = grocery_weight
 st.session_state["social_weight"] = social_weight
 
 poi_priority_names = st.sidebar.multiselect(
-    "Extra places to prioritize in score",
-    options=places_df["name"].tolist()
+    "Extra places to prioritize in score", options=places_df["name"].tolist()
 )
 
 st.sidebar.subheader("Optional keyword amenities")
 desired_amenities_text = st.sidebar.text_input(
     "Enter amenities you want (comma-separated)"
 )
-desired_amenities = [x.strip().lower() for x in desired_amenities_text.split(",") if x.strip()]
+desired_amenities = [
+    x.strip().lower() for x in desired_amenities_text.split(",") if x.strip()
+]
 
-# =========================================================
-# APPLY FILTERS
-# =========================================================
+# applying all the filters to the dataframe to get the final set of listings to display and score
 filtered = df.copy()
 
 filtered = filtered[
-    (filtered["price_per_bed"] >= price_range[0]) &
-    (filtered["price_per_bed"] <= price_range[1])
+    (filtered["price_per_bed"] >= price_range[0])
+    & (filtered["price_per_bed"] <= price_range[1])
 ]
 
 if selected_bedrooms:
     filtered = filtered[filtered["bedrooms"].astype(int).isin(selected_bedrooms)]
 
 if selected_neighborhoods and "neighborhood" in filtered.columns:
-    filtered = filtered[filtered["neighborhood"].astype(str).isin(selected_neighborhoods)]
+    filtered = filtered[
+        filtered["neighborhood"].astype(str).isin(selected_neighborhoods)
+    ]
 
 if pets_filter != "Any" and "pets_allowed" in filtered.columns:
     if pets_filter == "Yes only":
-        filtered = filtered[filtered["pets_allowed"].str.contains("yes|true|allowed", na=False)]
+        filtered = filtered[
+            filtered["pets_allowed"].str.contains("yes|true|allowed", na=False)
+        ]
     elif pets_filter == "No only":
-        filtered = filtered[~filtered["pets_allowed"].str.contains("yes|true|allowed", na=False)]
+        filtered = filtered[
+            ~filtered["pets_allowed"].str.contains("yes|true|allowed", na=False)
+        ]
 
 if parking_filter != "Any" and "has_parking" in filtered.columns:
     if parking_filter == "Yes only":
@@ -345,9 +353,7 @@ if location_preferences:
             if dist_col in filtered.columns:
                 filtered = filtered[filtered[dist_col] <= max_dist]
 
-# =========================================================
-# AMENITY MATCH SCORE
-# =========================================================
+# matching amenities and calculating amenity match score
 if "amenities" in filtered.columns:
     amenity_lists = filtered["amenities"].apply(parse_amenities_cell)
     if desired_amenities:
@@ -362,26 +368,32 @@ if "amenities" in filtered.columns:
 else:
     filtered["amenity_match_score"] = 0.0
 
-# =========================================================
-# BUILD DYNAMIC SCORES
-# =========================================================
+# logic for dynamic scoring based on factors like rent,
+# campus proximity, grocery access, and social access.
+# Each factor is scored on a 0-100 scale
+# and then combined into an overall student score based
+# on the weights selected in the sidebar
 if len(filtered) > 0:
-    filtered["rent_score"] = minmax_score(filtered["price_per_bed"], higher_is_better=False)
+    filtered["rent_score"] = minmax_score(
+        filtered["price_per_bed"], higher_is_better=False
+    )
 
     campus_candidates = [
-        c for c in [
-            "dist_to_memorial_union_mu",
-            "dist_to_mu",
-            "nearest_campus_dist"
-        ] if c in filtered.columns
+        c
+        for c in ["dist_to_memorial_union_mu", "dist_to_mu", "nearest_campus_dist"]
+        if c in filtered.columns
     ]
     if campus_candidates:
-        filtered["campus_score"] = minmax_score(filtered[campus_candidates[0]], higher_is_better=False)
+        filtered["campus_score"] = minmax_score(
+            filtered[campus_candidates[0]], higher_is_better=False
+        )
     else:
         filtered["campus_score"] = 50.0
 
     if "nearest_grocery_dist" in filtered.columns:
-        filtered["grocery_score"] = minmax_score(filtered["nearest_grocery_dist"], higher_is_better=False)
+        filtered["grocery_score"] = minmax_score(
+            filtered["nearest_grocery_dist"], higher_is_better=False
+        )
     else:
         grocery_cols = [
             p["dist_col"]
@@ -390,14 +402,22 @@ if len(filtered) > 0:
         ]
         if grocery_cols:
             filtered["nearest_grocery_dynamic"] = filtered[grocery_cols].min(axis=1)
-            filtered["grocery_score"] = minmax_score(filtered["nearest_grocery_dynamic"], higher_is_better=False)
+            filtered["grocery_score"] = minmax_score(
+                filtered["nearest_grocery_dynamic"], higher_is_better=False
+            )
         else:
             filtered["grocery_score"] = 50.0
 
-    social_cols = [c for c in ["dist_to_downtown_davis_3rd_and_g_st", "dist_to_davis_farmers_market"] if c in filtered.columns]
+    social_cols = [
+        c
+        for c in ["dist_to_downtown_davis_3rd_and_g_st", "dist_to_davis_farmers_market"]
+        if c in filtered.columns
+    ]
     if social_cols:
         filtered["social_min_dist"] = filtered[social_cols].min(axis=1)
-        filtered["social_score"] = minmax_score(filtered["social_min_dist"], higher_is_better=False)
+        filtered["social_score"] = minmax_score(
+            filtered["social_min_dist"], higher_is_better=False
+        )
     else:
         filtered["social_score"] = 50.0
 
@@ -411,33 +431,34 @@ if len(filtered) > 0:
 
     if selected_priority_cols:
         filtered["priority_avg_dist"] = filtered[selected_priority_cols].mean(axis=1)
-        filtered["priority_places_score"] = minmax_score(filtered["priority_avg_dist"], higher_is_better=False)
+        filtered["priority_places_score"] = minmax_score(
+            filtered["priority_avg_dist"], higher_is_better=False
+        )
     else:
         filtered["priority_places_score"] = 50.0
 
-    base_weights = normalize_weights({
-        "rent_score": rent_weight,
-        "campus_score": campus_weight,
-        "grocery_score": grocery_weight,
-        "social_score": social_weight
-    })
+    base_weights = normalize_weights(
+        {
+            "rent_score": rent_weight,
+            "campus_score": campus_weight,
+            "grocery_score": grocery_weight,
+            "social_score": social_weight,
+        }
+    )
 
     filtered["base_score"] = (
-        filtered["rent_score"] * base_weights["rent_score"] +
-        filtered["campus_score"] * base_weights["campus_score"] +
-        filtered["grocery_score"] * base_weights["grocery_score"] +
-        filtered["social_score"] * base_weights["social_score"]
+        filtered["rent_score"] * base_weights["rent_score"]
+        + filtered["campus_score"] * base_weights["campus_score"]
+        + filtered["grocery_score"] * base_weights["grocery_score"]
+        + filtered["social_score"] * base_weights["social_score"]
     )
 
     filtered["student_score"] = (
-        0.75 * filtered["base_score"] +
-        0.15 * filtered["priority_places_score"] +
-        0.10 * filtered["amenity_match_score"]
+        0.75 * filtered["base_score"]
+        + 0.15 * filtered["priority_places_score"]
+        + 0.10 * filtered["amenity_match_score"]
     )
 
-# =========================================================
-# TOP SUMMARY
-# =========================================================
 c1, c2, c3, c4 = st.columns(4)
 
 c1.metric("Listings shown", len(filtered))
@@ -450,16 +471,14 @@ else:
     c3.metric("Avg student score", "N/A")
     c4.metric("Best score", "N/A")
 
-# =========================================================
-# MAP + TABLE + ORIGINAL TWO GRAPHS
-# =========================================================
+# table, map and visualization section of the home page
 if len(filtered) > 0:
     hover_data_dict = {
         "price_per_bed": ":.0f",
         "price_total": ":.0f",
         "address": False,
         "lat": False,
-        "lon": False
+        "lon": False,
     }
 
     if "nearest_campus_dist" in filtered.columns:
@@ -481,41 +500,41 @@ if len(filtered) > 0:
         hover_name="address",
         hover_data=hover_data_dict,
         color_continuous_scale="Plasma",
-        title="Student Value Score Map"
+        title="Student Value Score Map",
     )
 
     category_symbols = {
-    "campus": "star",
-    "grocery": "marker",
-    "social": "square",
-    "transit": "triangle"
-}
+        "campus": "star",
+        "grocery": "marker",
+        "social": "square",
+        "transit": "triangle",
+    }
     category_colors = {
-    "campus": "red",
-    "grocery": "green",
-    "social": "skyblue",
-    "transit": "orange"
-    }   
+        "campus": "red",
+        "grocery": "green",
+        "social": "skyblue",
+        "transit": "orange",
+    }
     for category in places_df["category"].unique():
         subset = places_df[places_df["category"] == category]
 
         fig.add_trace(
             go.Scattermap(
-            lat=subset["lat"],
-            lon=subset["lon"],
-            mode="markers+text",
-            text=subset["name"],
-            textposition="top center",
-            marker=dict(
-                size=14,
-                symbol=category_symbols.get(category, "circle"),
-                color="gray"
-            ),
-            name=category.capitalize(),
-            customdata=subset[["description"]],
-            hovertemplate="<b>%{text}</b><br>%{customdata[0]}<extra></extra>"
+                lat=subset["lat"],
+                lon=subset["lon"],
+                mode="markers+text",
+                text=subset["name"],
+                textposition="top center",
+                marker=dict(
+                    size=14,
+                    symbol=category_symbols.get(category, "circle"),
+                    color="gray",
+                ),
+                name=category.capitalize(),
+                customdata=subset[["description"]],
+                hovertemplate="<b>%{text}</b><br>%{customdata[0]}<extra></extra>",
+            )
         )
-    )
 
     fig.update_layout(
         map_style="open-street-map",
@@ -523,26 +542,41 @@ if len(filtered) > 0:
         margin={"r": 50, "t": 50, "l": 0, "b": 0},
         title=dict(x=0.5, xanchor="center"),
         legend_title_text="Map Layers",
-        legend=dict(x=0.5, y=-0.1, xanchor="center", yanchor="top", orientation="h")
+        legend=dict(x=0.5, y=-0.1, xanchor="center", yanchor="top", orientation="h"),
     )
-   
+
     st.plotly_chart(fig, use_container_width=True)
 
-    # =====================================================
-    # TABLE OF TOP RECOMMENDATIONS WITH DIRECT ROW SELECTION
-    # =====================================================
+    # top recc table with selection for comparison and insights graphs
     st.subheader("Top Recommendations")
-    st.write("Select up to 3 listings directly from the table below, then click Compare Selected.")
+    st.write(
+        "Select up to 3 listings directly from the table below, then click Compare Selected."
+    )
 
     rec_cols = [
-        c for c in [
-            "listing_id", "complex_name", "address", "neighborhood", "price_total", "price_per_bed",
-            "bedrooms", "baths", "sqft", "nearest_grocery", "nearest_grocery_dist",
-            "nearest_campus", "nearest_campus_dist", "student_score"
-        ] if c in filtered.columns
+        c
+        for c in [
+            "listing_id",
+            "complex_name",
+            "address",
+            "neighborhood",
+            "price_total",
+            "price_per_bed",
+            "bedrooms",
+            "baths",
+            "sqft",
+            "nearest_grocery",
+            "nearest_grocery_dist",
+            "nearest_campus",
+            "nearest_campus_dist",
+            "student_score",
+        ]
+        if c in filtered.columns
     ]
 
-    top_recs = filtered.sort_values("student_score", ascending=False)[rec_cols].head(15).copy()
+    top_recs = (
+        filtered.sort_values("student_score", ascending=False)[rec_cols].head(15).copy()
+    )
     top_recs = top_recs.reset_index(drop=True)
 
     event = st.dataframe(
@@ -551,7 +585,7 @@ if len(filtered) > 0:
         hide_index=True,
         on_select="rerun",
         selection_mode="multi-row",
-        key="top_recommendations_table"
+        key="top_recommendations_table",
     )
 
     selected_rows = []
@@ -561,7 +595,9 @@ if len(filtered) > 0:
     selected_rows = selected_rows[:3]
 
     if selected_rows:
-        st.session_state.selected_listing_ids = top_recs.iloc[selected_rows]["listing_id"].tolist()
+        st.session_state.selected_listing_ids = top_recs.iloc[selected_rows][
+            "listing_id"
+        ].tolist()
     else:
         st.session_state.selected_listing_ids = []
 
@@ -580,11 +616,11 @@ if len(filtered) > 0:
             st.rerun()
 
     if st.session_state.selected_listing_ids:
-        st.info(f"✓ {len(st.session_state.selected_listing_ids)} listing(s) selected for comparison")
+        st.info(
+            f"✓ {len(st.session_state.selected_listing_ids)} listing(s) selected for comparison"
+        )
 
-    # =====================================================
-    # ORIGINAL TWO GRAPHS BELOW THE TABLE
-    # =====================================================
+    # graphs
     st.subheader("Quick Insights")
 
     left, right = st.columns(2)
@@ -594,7 +630,7 @@ if len(filtered) > 0:
             filtered.groupby("bedrooms", as_index=False)["price_per_bed"].mean(),
             x="bedrooms",
             y="price_per_bed",
-            title="Average Price per Bed by Bedrooms"
+            title="Average Price per Bed by Bedrooms",
         )
         fig_bar.update_layout(template="plotly_white", xaxis=dict(dtick=1))
         st.plotly_chart(fig_bar, use_container_width=True)
@@ -606,10 +642,12 @@ if len(filtered) > 0:
                 x="neighborhood",
                 y="price_per_bed",
                 title="Price per Bed by Neighborhood",
-                color="neighborhood"
+                color="neighborhood",
             )
             fig_nb.update_layout(template="plotly_white", showlegend=False)
             st.plotly_chart(fig_nb, use_container_width=True)
 
 else:
-    st.warning("No listings match your filters. Widen the distance, amenity, or budget settings.")
+    st.warning(
+        "No listings match your filters. Widen the distance, amenity, or budget settings."
+    )

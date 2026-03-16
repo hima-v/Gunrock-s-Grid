@@ -1,24 +1,22 @@
+# we thought of adding a page in streamlit which helps us compare
+# the listings side by side. This page would be accessible from
+# the main page after selecting listings to compare on streamlit.
+
 import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-# =========================================================
-# PAGE CONFIG
-# =========================================================
+
 st.set_page_config(
-    page_title="Compare Listings",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    page_title="Compare Listings", layout="wide", initial_sidebar_state="expanded"
 )
 
 st.title("Compare Housing Listings")
 st.caption("Compare up to 3 selected listings side-by-side")
 
-# =========================================================
-# HELPERS
-# =========================================================
+
 def normalize_listing_id(x):
     if pd.isna(x):
         return None
@@ -27,22 +25,42 @@ def normalize_listing_id(x):
 
 def preprocess_df(df):
     required_subset = [
-        "listing_id", "lat", "lon", "complex_name",
-        "address", "price_total", "bedrooms", "price_per_bed"
+        "listing_id",
+        "lat",
+        "lon",
+        "complex_name",
+        "address",
+        "price_total",
+        "bedrooms",
+        "price_per_bed",
     ]
     existing_required_subset = [c for c in required_subset if c in df.columns]
     df = df.dropna(subset=existing_required_subset).copy()
 
     numeric_cols = [
-        "price_total", "bedrooms", "baths", "sqft", "lat", "lon",
-        "price_per_bed", "price_per_sqft",
-        "dist_to_memorial_union_mu", "dist_to_silo", "dist_to_shields_library",
-        "dist_to_arc_activities_and_recreation_center", "dist_to_student_health_center",
-        "dist_to_trader_joes", "dist_to_safeway_north",
-        "dist_to_nugget_markets_east_covell", "dist_to_davis_food_co-op",
-        "dist_to_target", "dist_to_downtown_davis_3rd_and_g_st",
-        "dist_to_davis_farmers_market", "dist_to_davis_amtrak_station",
-        "nearest_grocery_dist", "nearest_campus_dist"
+        "price_total",
+        "bedrooms",
+        "baths",
+        "sqft",
+        "lat",
+        "lon",
+        "price_per_bed",
+        "price_per_sqft",
+        "dist_to_memorial_union_mu",
+        "dist_to_silo",
+        "dist_to_shields_library",
+        "dist_to_arc_activities_and_recreation_center",
+        "dist_to_student_health_center",
+        "dist_to_trader_joes",
+        "dist_to_safeway_north",
+        "dist_to_nugget_markets_east_covell",
+        "dist_to_davis_food_co-op",
+        "dist_to_target",
+        "dist_to_downtown_davis_3rd_and_g_st",
+        "dist_to_davis_farmers_market",
+        "dist_to_davis_amtrak_station",
+        "nearest_grocery_dist",
+        "nearest_campus_dist",
     ]
 
     for col in numeric_cols:
@@ -126,8 +144,7 @@ def build_metric_row(df_in, label, col_name, fmt="text", higher_better=None):
         formatted = values.fillna("N/A").astype(str)
 
     display_cols = [
-        f"{addr} ({lid})"
-        for addr, lid in zip(df_in["address"], df_in["listing_id"])
+        f"{addr} ({lid})" for addr, lid in zip(df_in["address"], df_in["listing_id"])
     ]
 
     row = pd.DataFrame([formatted.values], columns=display_cols, index=[label])
@@ -155,36 +172,39 @@ def style_comparison_table(comp_table):
     return comp_table.style.applymap(highlight_star)
 
 
-# =========================================================
-# DATA LOADING
-# =========================================================
+# load the enriched csv dataset
 DATA_PATH = "./enriched_listings.csv"
+
 
 @st.cache_data
 def load_data(path):
     return pd.read_csv(path)
 
+
 df = load_data(DATA_PATH)
 df = preprocess_df(df)
 
-# =========================================================
-# LOAD USER-SELECTED WEIGHTS FROM MAIN PAGE
-# =========================================================
+# from the main page, we should have stored the weights in session state.
+# If not present, our function use default weights.
+
 rent_weight = st.session_state.get("rent_weight", 0.45)
 campus_weight = st.session_state.get("campus_weight", 0.30)
 grocery_weight = st.session_state.get("grocery_weight", 0.15)
 social_weight = st.session_state.get("social_weight", 0.10)
 
-base_weights = normalize_weights({
-    "rent_score": rent_weight,
-    "campus_score": campus_weight,
-    "grocery_score": grocery_weight,
-    "social_score": social_weight
-})
+base_weights = normalize_weights(
+    {
+        "rent_score": rent_weight,
+        "campus_score": campus_weight,
+        "grocery_score": grocery_weight,
+        "social_score": social_weight,
+    }
+)
 
-# =========================================================
-# SCORE CALCULATION
-# =========================================================
+# logic for calculating the scores -
+# we use min-max normalization to convert raw metrics
+# into 0-100 scores, then combine them using the weights.
+
 df["rent_score"] = minmax_score(df["price_per_bed"], higher_is_better=False)
 
 if "nearest_campus_dist" in df.columns:
@@ -193,31 +213,35 @@ else:
     df["campus_score"] = 50.0
 
 if "nearest_grocery_dist" in df.columns:
-    df["grocery_score"] = minmax_score(df["nearest_grocery_dist"], higher_is_better=False)
+    df["grocery_score"] = minmax_score(
+        df["nearest_grocery_dist"], higher_is_better=False
+    )
 else:
     df["grocery_score"] = 50.0
 
 if "dist_to_downtown_davis_3rd_and_g_st" in df.columns:
-    df["social_score"] = minmax_score(df["dist_to_downtown_davis_3rd_and_g_st"], higher_is_better=False)
+    df["social_score"] = minmax_score(
+        df["dist_to_downtown_davis_3rd_and_g_st"], higher_is_better=False
+    )
 else:
     df["social_score"] = 50.0
 
 df["student_score"] = (
-    df["rent_score"] * base_weights["rent_score"] +
-    df["campus_score"] * base_weights["campus_score"] +
-    df["grocery_score"] * base_weights["grocery_score"] +
-    df["social_score"] * base_weights["social_score"]
+    df["rent_score"] * base_weights["rent_score"]
+    + df["campus_score"] * base_weights["campus_score"]
+    + df["grocery_score"] * base_weights["grocery_score"]
+    + df["social_score"] * base_weights["social_score"]
 )
 
-# =========================================================
 # LOAD SELECTED IDS
-# =========================================================
 selected_listing_ids = st.session_state.get("selected_listing_ids", [])
 selected_listing_ids = [normalize_listing_id(x) for x in selected_listing_ids]
 selected_listing_ids = [x for x in selected_listing_ids if x is not None]
 
 if not selected_listing_ids:
-    st.warning("No listings were selected on the main page. Go back and select up to 3 rows from the recommendations table.")
+    st.warning(
+        "No listings were selected on the main page. Go back and select up to 3 rows from the recommendations table."
+    )
     st.stop()
 
 comparison_data = df[df["listing_id"].isin(selected_listing_ids)].copy()
@@ -235,16 +259,16 @@ if not valid_ids:
     st.stop()
 
 if missing_ids:
-    st.warning(f"Some selected listings were not found and were skipped: {', '.join(missing_ids)}")
+    st.warning(
+        f"Some selected listings were not found and were skipped: {', '.join(missing_ids)}"
+    )
 
 order_df = pd.DataFrame({"listing_id": valid_ids})
 comparison_data = order_df.merge(comparison_data, on="listing_id", how="inner")
 
 st.success(f"Loaded {len(comparison_data)} listing(s) from the main page.")
 
-# =========================================================
-# SHOW ACTIVE WEIGHTS
-# =========================================================
+# show active weights
 st.write("### Active Scoring Weights")
 w1, w2, w3, w4 = st.columns(4)
 w1.metric("Rent", f"{base_weights['rent_score']:.0%}")
@@ -252,30 +276,32 @@ w2.metric("Campus", f"{base_weights['campus_score']:.0%}")
 w3.metric("Grocery", f"{base_weights['grocery_score']:.0%}")
 w4.metric("Social", f"{base_weights['social_score']:.0%}")
 
-# =========================================================
-# QUICK WINNERS
-# =========================================================
+# we display quick winners
+
 best_score_idx = comparison_data["student_score"].idxmax()
 cheapest_idx = comparison_data["price_per_bed"].idxmin()
 
 metric_cols = st.columns(3)
 metric_cols[0].metric("Best Overall", comparison_data.loc[best_score_idx, "address"])
-metric_cols[1].metric("Lowest Price / Bed", comparison_data.loc[cheapest_idx, "address"])
+metric_cols[1].metric(
+    "Lowest Price / Bed", comparison_data.loc[cheapest_idx, "address"]
+)
 
-if "nearest_campus_dist" in comparison_data.columns and comparison_data["nearest_campus_dist"].notna().sum() > 0:
+if (
+    "nearest_campus_dist" in comparison_data.columns
+    and comparison_data["nearest_campus_dist"].notna().sum() > 0
+):
     closest_campus_idx = comparison_data["nearest_campus_dist"].idxmin()
-    metric_cols[2].metric("Closest to Campus", comparison_data.loc[closest_campus_idx, "address"])
+    metric_cols[2].metric(
+        "Closest to Campus", comparison_data.loc[closest_campus_idx, "address"]
+    )
 else:
     metric_cols[2].metric("Closest to Campus", "N/A")
 
-# =========================================================
-# TABS
-# =========================================================
+# t abs will have columns
 tab1, tab2, tab3 = st.tabs(["Comparison Table", "Score Breakdown", "Visual Comparison"])
 
-# =========================================================
-# TAB 1: COMPARISON TABLE
-# =========================================================
+# table for comparing the listings side by side
 with tab1:
     st.write("### Detailed side-by-side comparison")
 
@@ -295,12 +321,19 @@ with tab1:
         ("Distance to Campus", "nearest_campus_dist", "float2", False),
         ("Nearest Grocery", "nearest_grocery", "text", None),
         ("Distance to Grocery", "nearest_grocery_dist", "float2", False),
-        ("Distance to Downtown", "dist_to_downtown_davis_3rd_and_g_st", "float2", False),
+        (
+            "Distance to Downtown",
+            "dist_to_downtown_davis_3rd_and_g_st",
+            "float2",
+            False,
+        ),
         ("Student Score", "student_score", "float1", True),
     ]
 
     for label, col_name, fmt, higher_better in row_specs:
-        row_df = build_metric_row(comparison_data, label, col_name, fmt=fmt, higher_better=higher_better)
+        row_df = build_metric_row(
+            comparison_data, label, col_name, fmt=fmt, higher_better=higher_better
+        )
         if row_df is not None:
             comparison_rows.append(row_df)
 
@@ -325,38 +358,44 @@ with tab1:
     if "has_parking" in amenities_df.columns:
         amenities_df["has_parking"] = amenities_df["has_parking"].apply(amenity_icon)
 
-    amenities_df = amenities_df.rename(columns={
-        "address": "Listing",
-        "pets_allowed": "Pets Allowed",
-        "has_parking": "Parking",
-        "laundry_type": "Laundry Type"
-    })
+    amenities_df = amenities_df.rename(
+        columns={
+            "address": "Listing",
+            "pets_allowed": "Pets Allowed",
+            "has_parking": "Parking",
+            "laundry_type": "Laundry Type",
+        }
+    )
 
     st.dataframe(amenities_df, use_container_width=True, hide_index=True)
 
-# =========================================================
-# TAB 2: SCORE BREAKDOWN
-# =========================================================
+# score breakdown
 with tab2:
     st.write("### Score breakdown")
 
-    score_cols = ["address", "rent_score", "campus_score", "grocery_score", "social_score"]
+    score_cols = [
+        "address",
+        "rent_score",
+        "campus_score",
+        "grocery_score",
+        "social_score",
+    ]
     available_score_cols = [c for c in score_cols if c in comparison_data.columns]
 
     if len(available_score_cols) >= 2:
         score_data = comparison_data[available_score_cols].copy()
         score_long = score_data.melt(
-            id_vars="address",
-            var_name="metric",
-            value_name="score"
+            id_vars="address", var_name="metric", value_name="score"
         )
 
-        score_long["metric"] = score_long["metric"].map({
-            "rent_score": "Rent",
-            "campus_score": "Campus",
-            "grocery_score": "Grocery",
-            "social_score": "Social"
-        })
+        score_long["metric"] = score_long["metric"].map(
+            {
+                "rent_score": "Rent",
+                "campus_score": "Campus",
+                "grocery_score": "Grocery",
+                "social_score": "Social",
+            }
+        )
 
         fig_scores = px.bar(
             score_long,
@@ -365,33 +404,33 @@ with tab2:
             color="address",
             barmode="group",
             title="Score Breakdown by Listing",
-            color_discrete_sequence=px.colors.qualitative.Set1
+            color_discrete_sequence=px.colors.qualitative.Set1,
         )
         fig_scores.update_layout(
             template="plotly_white",
             xaxis_title="",
             yaxis_title="Score",
-            legend_title_text="Address"
+            legend_title_text="Address",
         )
         st.plotly_chart(fig_scores, use_container_width=True)
 
     raw_cols = [
-        c for c in [
+        c
+        for c in [
             "address",
             "price_per_bed",
             "nearest_campus_dist",
             "nearest_grocery_dist",
-            "dist_to_downtown_davis_3rd_and_g_st"
-        ] if c in comparison_data.columns
+            "dist_to_downtown_davis_3rd_and_g_st",
+        ]
+        if c in comparison_data.columns
     ]
 
     if raw_cols:
         st.write("### Raw score inputs")
         st.dataframe(comparison_data[raw_cols], use_container_width=True)
 
-# =========================================================
-# TAB 3: VISUAL COMPARISON
-# =========================================================
+# visual comparison
 with tab3:
     st.write("### Meaningful visual comparison")
 
@@ -403,13 +442,13 @@ with tab3:
             size="student_score",
             text="address",
             hover_name="address",
-            title="Affordability vs Campus Distance"
+            title="Affordability vs Campus Distance",
         )
         fig_scatter.update_traces(textposition="top center")
         fig_scatter.update_layout(
             template="plotly_white",
             xaxis_title="Price per Bed ($)",
-            yaxis_title="Distance to Campus (miles)"
+            yaxis_title="Distance to Campus (miles)",
         )
         st.plotly_chart(fig_scatter, use_container_width=True)
 
@@ -423,14 +462,14 @@ with tab3:
             text="price_per_bed",
             title="Price per Bed",
             color="address",
-            color_discrete_sequence=px.colors.qualitative.Set1
+            color_discrete_sequence=px.colors.qualitative.Set1,
         )
         fig_price.update_traces(texttemplate="$%{y:.0f}", textposition="outside")
         fig_price.update_layout(
             template="plotly_white",
             xaxis_title="",
             yaxis_title="Price per Bed ($)",
-            showlegend=False
+            showlegend=False,
         )
         st.plotly_chart(fig_price, use_container_width=True)
 
@@ -442,19 +481,21 @@ with tab3:
             text="student_score",
             title="Overall Student Score",
             color="address",
-            color_discrete_sequence=px.colors.qualitative.Set1
+            color_discrete_sequence=px.colors.qualitative.Set1,
         )
         fig_score.update_traces(texttemplate="%{y:.1f}", textposition="outside")
         fig_score.update_layout(
             template="plotly_white",
             xaxis_title="",
             yaxis_title="Student Score",
-            showlegend=False
+            showlegend=False,
         )
         st.plotly_chart(fig_score, use_container_width=True)
 
     st.write("### Proximity Comparison")
-    st.caption("Radar chart shows overall proximity profile, while the bar chart shows exact distances to key places.")
+    st.caption(
+        "Radar chart shows overall proximity profile, while the bar chart shows exact distances to key places."
+    )
 
     prox_col1, prox_col2 = st.columns(2)
 
@@ -463,10 +504,14 @@ with tab3:
             ("dist_to_memorial_union_mu", "MU"),
             ("dist_to_trader_joes", "Trader Joe's"),
             ("dist_to_downtown_davis_3rd_and_g_st", "Downtown"),
-            ("dist_to_arc_activities_and_recreation_center", "ARC")
+            ("dist_to_arc_activities_and_recreation_center", "ARC"),
         ]
 
-        radar_metrics = [(col, label) for col, label in radar_candidates if col in comparison_data.columns]
+        radar_metrics = [
+            (col, label)
+            for col, label in radar_candidates
+            if col in comparison_data.columns
+        ]
 
         if len(radar_metrics) >= 3 and len(comparison_data) <= 3:
             fig_radar = go.Figure()
@@ -478,58 +523,55 @@ with tab3:
                 theta_closed = theta + [theta[0]]
                 r_closed = r + [r[0]]
 
-                fig_radar.add_trace(go.Scatterpolar(
-                    r=r_closed,
-                    theta=theta_closed,
-                    fill="toself",
-                    name=row["address"],
-                    hovertemplate="<b>%{fullData.name}</b><br>%{theta}: %{r:.2f} miles<extra></extra>"
-                ))
+                fig_radar.add_trace(
+                    go.Scatterpolar(
+                        r=r_closed,
+                        theta=theta_closed,
+                        fill="toself",
+                        name=row["address"],
+                        hovertemplate="<b>%{fullData.name}</b><br>%{theta}: %{r:.2f} miles<extra></extra>",
+                    )
+                )
 
             fig_radar.update_layout(
-    template="plotly_white",
-    polar=dict(
-        radialaxis=dict(
-            visible=True,
-            title="Distance (miles)"
-        )
-    ),
-    title="Radar View",
-    legend_title_text="Address",
-    legend=dict(
-        orientation="h",
-        yanchor="top",
-        y=-0.15,
-        xanchor="center",
-        x=0.5
-    )
-)
+                template="plotly_white",
+                polar=dict(radialaxis=dict(visible=True, title="Distance (miles)")),
+                title="Radar View",
+                legend_title_text="Address",
+                legend=dict(
+                    orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5
+                ),
+            )
 
             st.plotly_chart(fig_radar, use_container_width=True)
         else:
-            st.info("Radar chart is available when at least 3 proximity metrics exist and up to 3 listings are selected.")
+            st.info(
+                "Radar chart is available when at least 3 proximity metrics exist and up to 3 listings are selected."
+            )
 
     with prox_col2:
         dist_metrics = [
-            c for c in [
+            c
+            for c in [
                 "nearest_campus_dist",
                 "nearest_grocery_dist",
-                "dist_to_downtown_davis_3rd_and_g_st"
-            ] if c in comparison_data.columns
+                "dist_to_downtown_davis_3rd_and_g_st",
+            ]
+            if c in comparison_data.columns
         ]
 
         if dist_metrics:
             dist_long = comparison_data[["address"] + dist_metrics].melt(
-                id_vars="address",
-                var_name="place",
-                value_name="distance"
+                id_vars="address", var_name="place", value_name="distance"
             )
 
-            dist_long["place"] = dist_long["place"].map({
-                "nearest_campus_dist": "Campus",
-                "nearest_grocery_dist": "Grocery",
-                "dist_to_downtown_davis_3rd_and_g_st": "Downtown"
-            })
+            dist_long["place"] = dist_long["place"].map(
+                {
+                    "nearest_campus_dist": "Campus",
+                    "nearest_grocery_dist": "Grocery",
+                    "dist_to_downtown_davis_3rd_and_g_st": "Downtown",
+                }
+            )
 
             fig_dist = px.bar(
                 dist_long,
@@ -538,7 +580,7 @@ with tab3:
                 color="address",
                 barmode="group",
                 title="Bar View",
-                color_discrete_sequence=px.colors.qualitative.Set1
+                color_discrete_sequence=px.colors.qualitative.Set1,
             )
             fig_dist.update_layout(
                 template="plotly_white",
@@ -546,16 +588,14 @@ with tab3:
                 yaxis_title="Distance (miles)",
                 legend_title_text="Address",
                 legend=dict(
-                    orientation="h",
-                    yanchor="top",
-                    y=-0.25,
-                    xanchor="center",
-                    x=0.5
-                )
+                    orientation="h", yanchor="top", y=-0.25, xanchor="center", x=0.5
+                ),
             )
             st.plotly_chart(fig_dist, use_container_width=True)
         else:
             st.info("Distance comparison data is not available.")
 
     if any(c in comparison_data.columns for c in ["sqft", "bedrooms", "baths"]):
-        st.write("_Space and layout metrics are available in the comparison table above._")
+        st.write(
+            "_Space and layout metrics are available in the comparison table above._"
+        )

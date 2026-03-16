@@ -1,9 +1,9 @@
 # config.py
 # just has all the constants and stuff we reuse across files
-# easier to change things in one place instead of hunting thru every file
+# easier to change things in one place instead of going thru every file
 
-# ---- Memorial Union coordinates (our reference point for distance calc) ----
-# got these from google maps, right clicked on the MU building
+# Memorial Union coordinates (our reference point for distance calc)
+# got these from google maps
 MU_LAT = 38.5424
 MU_LON = -121.7483
 

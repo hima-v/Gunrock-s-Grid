@@ -1,3 +1,7 @@
+# we have commented the libraries we used because there was
+# error when hosting on streamlit
+# please uncomment the libraries to run the code on your local machine
+
 # requests==2.31.0
 # beautifulsoup4==4.12.3
 # pandas==2.2.1
@@ -19,6 +23,7 @@
 # statsmodels==0.14.2
 # sqlalchemy==2.0.28
 # playwright==1.49.0
+
 requests
 beautifulsoup4
 pandas

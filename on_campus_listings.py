@@ -19,15 +19,12 @@ Usage:
 import csv
 import os
 
-# ---------------------------------------------------------------------------
-# CONFIGURATION
-# ---------------------------------------------------------------------------
-
+# config and path setup
 # path setup -- same flat structure as the rest of the project
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 CSV_PATH = os.path.join(SCRIPT_DIR, "scraped_listings.csv")
 
-# CSV columns -- must EXACTLY match what craigslist_scraper.py writes
+# CSV columns -- EXACTLY match what craigslist_scraper.py writes
 FIELDNAMES = [
     "listing_id",
     "complex_name",
@@ -47,9 +44,7 @@ FIELDNAMES = [
     "url",
 ]
 
-# ---------------------------------------------------------------------------
-# ON-CAMPUS HOUSING DATA (2025-2026 fee schedules)
-# ---------------------------------------------------------------------------
+# on campus housing data
 # Notes on pricing:
 #   - The Green: quarterly fees converted to monthly (annual / 12)
 #   - Orchard Park: monthly rent from fee schedule (already monthly)
@@ -59,12 +54,10 @@ FIELDNAMES = [
 #   - Colleges at La Rue: per-bed pricing from RentCafe / Apartments.com
 
 ON_CAMPUS_LISTINGS = [
-    # ===================================================================
     # THE GREEN AT WEST VILLAGE (UC Davis operated, CHF-Davis I)
     # 298 Celadon St area | 38.5426, -121.7749
     # Quarterly billing -> converted to monthly
     # All furnished, utilities + internet + TV included
-    # ===================================================================
     {
         "listing_id": "oc_green_studio",
         "complex_name": "The Green at West Village",
@@ -119,11 +112,9 @@ ON_CAMPUS_LISTINGS = [
         "post_date": "2025-08-01",
         "url": "https://housing.ucdavis.edu/apartments/the-green/",
     },
-    # ===================================================================
     # ORCHARD PARK (UC Davis operated, CHF-Davis II)
     # Orchard Park Circle, northwest campus | 38.5440, -121.7608
     # Monthly billing, all utilities + WiFi included
-    # ===================================================================
     {
         "listing_id": "oc_orchard_studio",
         "complex_name": "Orchard Park",
@@ -232,11 +223,9 @@ ON_CAMPUS_LISTINGS = [
         "post_date": "2025-08-01",
         "url": "https://housing.ucdavis.edu/apartments/orchard-park/",
     },
-    # ===================================================================
     # PRIMERO GROVE (UC Davis operated, grad/family housing)
     # Near Primero/Russell area | 38.5455, -121.7570
     # Monthly unit lease, unfurnished, utilities included
-    # ===================================================================
     {
         "listing_id": "oc_primero_studio",
         "complex_name": "Primero Grove",
@@ -327,11 +316,9 @@ ON_CAMPUS_LISTINGS = [
         "post_date": "2025-08-01",
         "url": "https://housing.ucdavis.edu/apartments/primero-grove/",
     },
-    # ===================================================================
     # ANOVA AGGIE SQUARE (UC Davis operated, Sacramento campus)
     # Sacramento | 38.5530, -121.4560
-    # WARNING: ~15 mi from Davis main campus. Delete if Davis-only.
-    # ===================================================================
+    # ~15 mi from Davis main campus
     {
         "listing_id": "oc_anova_micro_studio",
         "complex_name": "ANOVA Aggie Square",
@@ -386,11 +373,9 @@ ON_CAMPUS_LISTINGS = [
         "post_date": "2025-08-01",
         "url": "https://housing.ucdavis.edu/how-to-apply/anova-aggie-square/",
     },
-    # ===================================================================
     # SOL AT WEST VILLAGE (P3, Landmark Properties)
     # 1580 Jade St | 38.5398, -121.7722
     # Per-bed leasing, furnished, utilities NOT all included
-    # ===================================================================
     {
         "listing_id": "oc_sol_1br",
         "complex_name": "Sol at West Village",
@@ -445,11 +430,8 @@ ON_CAMPUS_LISTINGS = [
         "post_date": "2025-08-01",
         "url": "https://solatwestvillage.com/",
     },
-    # ===================================================================
     # THE COLLEGES AT LA RUE (P3, Tandem Properties)
     # 164 La Rue Rd | 38.5394, -121.7580
-    # Across from ARC and Rec Pool
-    # ===================================================================
     {
         "listing_id": "oc_colleges_1br",
         "complex_name": "The Colleges at La Rue",
@@ -507,13 +489,9 @@ ON_CAMPUS_LISTINGS = [
 ]
 
 
-# ---------------------------------------------------------------------------
-# MAIN -- append on-campus rows to scraped_listings.csv
-# ---------------------------------------------------------------------------
-
-
+# logic to append the on campus listings to the csv file
 def main():
-    # check if CSV exists and read existing listing IDs to avoid duplicates
+    # checking if CSV exists and read existing listing ids to avoid duplicates
     existing_ids = set()
     file_exists = os.path.exists(CSV_PATH)
 
@@ -523,7 +501,7 @@ def main():
             for row in reader:
                 existing_ids.add(row.get("listing_id", ""))
 
-    # filter out any on-campus listings already in the CSV
+    # filtering any on-campus listings already in the CSV
     new_listings = [
         L for L in ON_CAMPUS_LISTINGS if L["listing_id"] not in existing_ids
     ]
@@ -546,7 +524,6 @@ def main():
     print(f"  (skipped {len(ON_CAMPUS_LISTINGS) - len(new_listings)} already present)")
     print()
 
-    # quick summary
     print("--- ON-CAMPUS LISTINGS ADDED ---")
     for L in new_listings:
         beds = "Studio" if L["bedrooms"] == 0 else f"{L['bedrooms']}BR"

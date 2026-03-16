@@ -1,6 +1,9 @@
 # data/database.py
 # handles all the sqlite stuff - creating tables, inserting rows, reading data
 # we use sqlite bc its simple and doesnt need a server running
+# IMPORTANT NOTE -we did not use the databse because we were
+# able to work with the csv file directly for streamlit
+# this is just a setup to show we can store our listings in database
 
 import sqlite3
 import pandas as pd
@@ -8,6 +11,7 @@ import os
 
 # go up one folder to find config
 import sys
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import DB_NAME
 
@@ -21,7 +25,7 @@ def get_db_path():
 
 def create_tables():
     """makes the listings table if it doesnt exist yet
-    
+
     the schema has all 17 columns from our project doc.
     listing_id is the primary key - its a combo of source prefix + hash
     so we dont get duplicate entries if we scrape the same listing twice
@@ -29,7 +33,8 @@ def create_tables():
     conn = sqlite3.connect(get_db_path())
     cursor = conn.cursor()
 
-    cursor.execute("""
+    cursor.execute(
+        """
         CREATE TABLE IF NOT EXISTS listings (
             listing_id TEXT PRIMARY KEY,
             complex_name TEXT,
@@ -49,11 +54,13 @@ def create_tables():
             sentiment_score REAL,
             value_index REAL
         )
-    """)
+    """
+    )
 
-    # also make a table for raw reviews so we can reprocess them later if needed
+    # table for raw reviews so we can reprocess them later if needed
     # like if we want to try a different NLP method
-    cursor.execute("""
+    cursor.execute(
+        """
         CREATE TABLE IF NOT EXISTS reviews (
             review_id INTEGER PRIMARY KEY AUTOINCREMENT,
             listing_id TEXT,
@@ -63,7 +70,8 @@ def create_tables():
             compound_score REAL,
             FOREIGN KEY (listing_id) REFERENCES listings(listing_id)
         )
-    """)
+    """
+    )
 
     conn.commit()
     conn.close()
@@ -73,14 +81,14 @@ def create_tables():
 def insert_listing(listing_dict):
     """insert one listing into the db
     uses INSERT OR IGNORE so duplicates just get skipped
-    
+
     listing_dict should have keys matching the column names
     if some keys are missing thats ok, they'll just be NULL
     """
     conn = sqlite3.connect(get_db_path())
     cursor = conn.cursor()
 
-    # build the sql dynamically based on what keys are in the dict
+    # building the sql dynamically based on what keys are in the dict
     cols = ", ".join(listing_dict.keys())
     placeholders = ", ".join(["?" for _ in listing_dict])
     vals = list(listing_dict.values())
@@ -95,13 +103,13 @@ def insert_listing(listing_dict):
 def insert_many_listings(list_of_dicts):
     """bulk insert a bunch of listings at once
     way faster than calling insert_listing in a loop
-    
+
     expects a list of dicts, all with the same keys
     """
     if not list_of_dicts:
         print("nothing to insert, list is empty")
         return
-    
+
     conn = sqlite3.connect(get_db_path())
     cursor = conn.cursor()
 
@@ -149,7 +157,9 @@ def get_reviews_for_listing(listing_id):
     """get all reviews for a specifc listing
     useful for when we want to show review details in the app"""
     conn = sqlite3.connect(get_db_path())
-    df = pd.read_sql("SELECT * FROM reviews WHERE listing_id = ?", conn, params=[listing_id])
+    df = pd.read_sql(
+        "SELECT * FROM reviews WHERE listing_id = ?", conn, params=[listing_id]
+    )
     conn.close()
     return df
 
@@ -177,7 +187,7 @@ def update_listing_field(listing_id, field_name, value):
     conn.close()
 
 
-# run this if you execute the file directly - good for testing
+# run this if you execute the file directly - for testing
 if __name__ == "__main__":
     create_tables()
     print(f"db path: {get_db_path()}")
